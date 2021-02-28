@@ -1,6 +1,6 @@
 {
   "name": "@opaquejs/query-builder",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The default query builder for the Opaque ORM",
   "main": "lib/index.js",
   "files": [
