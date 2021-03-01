@@ -1,7 +1,7 @@
 import { Example, examples, runAsTest } from "@opaquejs/testing";
 import { OpaqueModel, attribute } from "@opaquejs/opaque";
 import { OpaqueQueryBuilder } from "../OpaqueQueryBuilder";
-import { NormalizedQuery } from "../contracts/OpaqueQueryBuilderContracts";
+import { NormalizedQuery } from "@opaquejs/query";
 
 class TestModel extends OpaqueModel {
   @attribute({ primaryKey: true })

@@ -1,13 +1,7 @@
 import { OpaqueTable } from "@opaquejs/opaque";
 import { ModelAttributes, OpaqueAttributes, PrimaryKeyValue } from "@opaquejs/opaque/lib/contracts/ModelContracts";
-import {
-  AtomicComparison,
-  ComaparisonTypes,
-  NormalizedQuery,
-  NormalizedSubQuery,
-  OpaqueQueryBuilderContract,
-  OpaqueQueryBuilderModifier,
-} from "./contracts/OpaqueQueryBuilderContracts";
+import { AtomicComparison, ComparisonTypes, NormalizedQuery, NormalizedSubQuery } from "@opaquejs/query";
+import { OpaqueQueryBuilderContract, OpaqueQueryBuilderModifier } from "./contracts/OpaqueQueryBuilderContracts";
 
 const isEmptyQuery = (query: NormalizedQuery): query is {} => {
   return Object.getOwnPropertyNames(query).length == 0;
@@ -38,13 +32,13 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
     return new (this.constructor as any)(this.model, query) as this;
   }
 
-  where(attribute: string, operator: keyof ComaparisonTypes<any> | unknown, value?: unknown): this {
+  where(attribute: string, operator: keyof ComparisonTypes<any> | unknown, value?: unknown): this {
     if (value === undefined) {
       return this.where(attribute, "==", operator);
     }
-    return this.$andQuery(this.$makeComparison(attribute, operator as keyof ComaparisonTypes<any>, value));
+    return this.$andQuery(this.$makeComparison(attribute, operator as keyof ComparisonTypes<any>, value));
   }
-  orWhere(attribute: string, operator: keyof ComaparisonTypes<any> | unknown, value?: unknown): this {
+  orWhere(attribute: string, operator: keyof ComparisonTypes<any> | unknown, value?: unknown): this {
     return this.or((query) => query.where(attribute, operator, value));
   }
   get andWhere() {
@@ -73,7 +67,7 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
     return this.$connectQuery("_or", query);
   }
 
-  $makeComparison(attribute: string, operator: keyof ComaparisonTypes<any>, value: unknown): AtomicComparison {
+  $makeComparison(attribute: string, operator: keyof ComparisonTypes<any>, value: unknown): AtomicComparison {
     return {
       key: attribute,
       comparator: operator,

@@ -6,7 +6,7 @@ name: NPM Publish
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   test:
@@ -17,7 +17,6 @@ jobs:
         with:
           node-version: 12
       - run: npm ci
-      - run: npm run build
       - run: npm run test
 
   publish-npm:

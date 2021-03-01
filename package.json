@@ -6,7 +6,9 @@
   "files": [
     "/lib"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@opaquejs/query": "^0.2.2"
+  },
   "devDependencies": {
     "@opaquejs/opaque": "0.17.0",
     "@opaquejs/testing": "^0.2.8",
