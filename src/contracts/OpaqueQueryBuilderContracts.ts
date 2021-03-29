@@ -6,8 +6,11 @@ export type OpaqueQueryBuilderModifier<QueryBuilder extends OpaqueQueryBuilderCo
   query: QueryBuilder
 ) => QueryBuilder;
 
-export interface OpaqueQueryBuilderContract<Model extends OpaqueTable>
-  extends QueryBuilderInterface<NormalizedQuery, Model> {
+export interface OpaqueQueryBuilderConstructorContract {
+  new <Model extends OpaqueTable>(model: Model, $query: NormalizedQuery): OpaqueQueryBuilderContract<Model>;
+}
+
+export interface OpaqueQueryBuilderContract<Model extends OpaqueTable> extends QueryBuilderInterface<NormalizedQuery> {
   // Needed for interface
   $getQuery(): NormalizedQuery;
 

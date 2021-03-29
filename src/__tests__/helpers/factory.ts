@@ -9,7 +9,7 @@ class TestAdapter extends NoOpAdapter {
   public read = jest.fn(super.read);
 }
 
-export const testQueryBuilder: QueryBuilderInterface<"query", any> = {
+export const testQueryBuilder: QueryBuilderInterface<"query"> = {
   for: jest.fn((key: any) => testQueryBuilder),
   $getQuery: jest.fn(() => "query"),
 };
