@@ -55,6 +55,19 @@ const queryExamples: [
     { key: "title", comparator: "==", value: "test", _skip: 2 },
   ],
 
+  // Ordering
+  [(builder) => builder.orderBy("title"), { _orderBy: [{ key: "title", direction: "asc" }] }],
+  [(builder) => builder.orderBy("title", "asc"), { _orderBy: [{ key: "title", direction: "asc" }] }],
+  [
+    (builder) => builder.orderBy("title", "asc").orderBy("description", "desc"),
+    {
+      _orderBy: [
+        { key: "title", direction: "asc" },
+        { key: "description", direction: "desc" },
+      ],
+    },
+  ],
+
   // Multiple where
   [
     (builder) => builder.where("title", "test").where("description", "other").andWhere("id", 12),

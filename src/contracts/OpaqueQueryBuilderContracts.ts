@@ -35,6 +35,7 @@ export interface OpaqueQueryBuilderContract<Model extends OpaqueTable> extends Q
 
   limit(limit: number): this;
   skip(skip: number): this;
+  orderBy(key: keyof ModelAttributes<InstanceType<Model>>, direction?: "asc" | "desc"): this;
 
   get(): Promise<InstanceType<Model>[]>;
   first(): Promise<InstanceType<Model>>;

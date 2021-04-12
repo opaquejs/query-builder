@@ -24,8 +24,8 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
   }
   $getRootParts() {
     return Object.fromEntries(
-      Object.entries(this.$getQuery()).filter(([key]) => ["_limit", "_skip"].includes(key))
-    ) as Pick<NormalizedQuery, "_limit" | "_skip">;
+      Object.entries(this.$getQuery()).filter(([key]) => ["_limit", "_skip", "_orderBy"].includes(key))
+    ) as Pick<NormalizedQuery, "_limit" | "_skip" | "_orderBy">;
   }
 
   $cloneForQuery(query: NormalizedQuery) {
@@ -89,6 +89,13 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
     return this.$cloneForQuery({
       ...this.$getQuery(),
       _skip,
+    });
+  }
+
+  orderBy(key: string, direction: "asc" | "desc" = "asc") {
+    return this.$cloneForQuery({
+      ...this.$getQuery(),
+      _orderBy: [...(this.$getRootParts()._orderBy || []), { key, direction }],
     });
   }
 
