@@ -1,19 +1,44 @@
-import { ModelAttributes, OpaqueAttributes, OpaqueTable } from "@opaquejs/opaque/lib/contracts/ModelContracts";
-import { QueryBuilderInterface } from "@opaquejs/opaque/lib/contracts/QueryBuilderInterface";
+import {
+  ModelAttributes,
+  OpaqueAttributes,
+  OpaqueRowInterface,
+  OpaqueTable,
+  OpaqueTableInterface,
+} from "@opaquejs/opaque/src/contracts/ModelContracts";
 import { ComparisonTypes, NormalizedQuery } from "@opaquejs/query";
+import { QueryBuilder } from "../OpaqueQueryBuilder";
 
-export type OpaqueQueryBuilderModifier<QueryBuilder extends OpaqueQueryBuilderContract<any>> = (
-  query: QueryBuilder
-) => QueryBuilder;
+export type QueryBuilderModifier<QueryBuilder extends QueryBuilderInterface> = (query: QueryBuilder) => QueryBuilder;
 
-export interface OpaqueQueryBuilderConstructorContract {
-  new <Model extends OpaqueTable>(model: Model, $query: NormalizedQuery): OpaqueQueryBuilderContract<Model>;
+export interface QueryBuilderStaticContract {
+  new <Model extends OpaqueTable>(model: Model, $query?: NormalizedQuery): QueryBuilderContract<Model>;
 }
 
-export interface OpaqueQueryBuilderContract<Model extends OpaqueTable> extends QueryBuilderInterface<NormalizedQuery> {
+export interface QueryBuilderInterface {
   // Needed for interface
+  for(id: unknown): this;
   $getQuery(): NormalizedQuery;
 
+  // Querying
+  where(attribute: string, operator: keyof ComparisonTypes<any>, value: unknown): this;
+  where(attribute: string, value: unknown): this;
+  where(modifier: QueryBuilderModifier<this>): this;
+  whereNot: this["where"];
+  andWhere: this["where"];
+  orWhere: this["where"];
+
+  limit(limit: number): this;
+  skip(skip: number): this;
+  orderBy(key: string, direction?: "asc" | "desc"): this;
+
+  get(): Promise<OpaqueRowInterface[]>;
+  first(): Promise<OpaqueRowInterface>;
+
+  update(data: OpaqueAttributes): Promise<void>;
+  delete(): Promise<void>;
+}
+export interface QueryBuilderContract<Model extends OpaqueTableInterface> extends QueryBuilderInterface {
+  model: Model;
   // Querying
   where<
     Attributes extends ModelAttributes<InstanceType<Model>>,
@@ -28,18 +53,16 @@ export interface OpaqueQueryBuilderContract<Model extends OpaqueTable> extends Q
     attribute: Attribute,
     value: ComparisonTypes<Attributes[Attribute]>["=="]
   ): this;
-  andWhere: this["where"];
-  orWhere: this["where"];
-  or(modifier: OpaqueQueryBuilderModifier<this>): this;
-  and(modifier: OpaqueQueryBuilderModifier<this>): this;
+  where(modifier: QueryBuilderModifier<this>): this;
 
-  limit(limit: number): this;
-  skip(skip: number): this;
   orderBy(key: keyof ModelAttributes<InstanceType<Model>>, direction?: "asc" | "desc"): this;
+
+  apply<This extends { model: OpaqueTable & { scopes: Record<string, any> } }>(
+    this: This,
+    key: keyof This["model"]["scopes"],
+    ...args: any[]
+  ): this;
 
   get(): Promise<InstanceType<Model>[]>;
   first(): Promise<InstanceType<Model>>;
-
-  update(data: OpaqueAttributes): Promise<void>;
-  delete(data: OpaqueAttributes): Promise<void>;
 }

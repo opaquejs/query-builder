@@ -1,17 +1,29 @@
-import { OpaqueTable } from "@opaquejs/opaque";
-import { ModelAttributes, OpaqueAttributes, PrimaryKeyValue } from "@opaquejs/opaque/lib/contracts/ModelContracts";
+import {
+  OpaqueAttributes,
+  PrimaryKeyValue,
+  OpaqueTable,
+  OpaqueTableInterface,
+  OpaqueRow,
+} from "@opaquejs/opaque/src/contracts/ModelContracts";
 import { AtomicComparison, ComparisonTypes, NormalizedQuery, NormalizedSubQuery } from "@opaquejs/query";
-import { OpaqueQueryBuilderContract, OpaqueQueryBuilderModifier } from "./contracts/OpaqueQueryBuilderContracts";
+import {
+  QueryBuilderInterface,
+  QueryBuilderModifier,
+  QueryBuilderContract,
+  QueryBuilderStaticContract,
+} from "./contracts/OpaqueQueryBuilderContracts";
 
 const isEmptyQuery = (query: NormalizedQuery): query is {} => {
   return Object.getOwnPropertyNames(query).length == 0;
 };
 
-export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> implements OpaqueQueryBuilderContract<Model> {
-  constructor(public model: Model, public $query: NormalizedQuery = {}) {}
+export type WhereParams = [string | QueryBuilderModifier<any>, (keyof ComparisonTypes<any> | unknown)?, unknown?];
+
+export class QueryBuilderImplementation implements QueryBuilderInterface {
+  constructor(public model: OpaqueTableInterface, public $query: NormalizedQuery = {}) {}
 
   for(key: PrimaryKeyValue) {
-    return this.where(this.model.primaryKey as any, "==", key);
+    return this.where(this.model.primaryKey, "==", key);
   }
 
   $getQuery() {
@@ -32,14 +44,34 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
     return new (this.constructor as any)(this.model, query) as this;
   }
 
-  where(attribute: string, operator: keyof ComparisonTypes<any> | unknown, value?: unknown): this {
+  where(...[attribute, operator, value]: WhereParams): this {
+    if (typeof attribute == "function") {
+      return this.$andQuery(attribute(this.$cloneForQuery({})).$getSubQuery());
+    }
     if (value === undefined) {
       return this.where(attribute, "==", operator);
     }
     return this.$andQuery(this.$makeComparison(attribute, operator as keyof ComparisonTypes<any>, value));
   }
-  orWhere(attribute: string, operator: keyof ComparisonTypes<any> | unknown, value?: unknown): this {
-    return this.or((query) => query.where(attribute, operator, value));
+  orWhere(...params: WhereParams): this {
+    return this.or((query) => query.where(...params));
+  }
+  andWhereNot(...params: WhereParams): this {
+    return this.$andQuery({
+      _not: this.$cloneForQuery({})
+        .where(...params)
+        .$getSubQuery(),
+    });
+  }
+  orWhereNot(...params: WhereParams): this {
+    return this.$orQuery({
+      _not: this.$cloneForQuery({})
+        .where(...params)
+        .$getSubQuery(),
+    });
+  }
+  get whereNot() {
+    return this.andWhereNot.bind(this);
   }
   get andWhere() {
     return this.where.bind(this);
@@ -99,15 +131,18 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
     });
   }
 
-  or(modifier: OpaqueQueryBuilderModifier<this>) {
+  or(modifier: QueryBuilderModifier<this>) {
     return this.$orQuery(modifier(this.$cloneForQuery({})).$getSubQuery());
   }
-  and(modifier: OpaqueQueryBuilderModifier<this>) {
+  and(modifier: QueryBuilderModifier<this>) {
     return this.$andQuery(modifier(this.$cloneForQuery({})).$getSubQuery());
   }
+  not(modifier: QueryBuilderModifier<this>) {
+    return this.$andQuery({ _not: modifier(this.$cloneForQuery({})).$getSubQuery() });
+  }
 
-  $hydrate(data: OpaqueAttributes): InstanceType<Model>;
-  $hydrate(data: OpaqueAttributes[]): InstanceType<Model>[];
+  $hydrate(data: OpaqueAttributes): OpaqueRow;
+  $hydrate(data: OpaqueAttributes[]): OpaqueRow[];
   $hydrate(data: OpaqueAttributes[] | OpaqueAttributes) {
     if (Array.isArray(data)) {
       return data.map((attributes) => this.model.$fromRow(attributes));
@@ -118,7 +153,7 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
   async get() {
     return this.$hydrate(await this.model.adapter.read(this.$query));
   }
-  async update(data: Partial<ModelAttributes<InstanceType<Model>>>) {
+  async update(data: OpaqueAttributes) {
     return await this.model.adapter.update(this.$query, data);
   }
   async delete() {
@@ -128,7 +163,30 @@ export class OpaqueQueryBuilderImplementation<Model extends OpaqueTable> impleme
   async first() {
     return (await this.limit(1).get())[0];
   }
+
+  apply(this: this & { model: { scopes: Record<string, any> } }, scopename: string, ...args: any[]) {
+    return this.where(this.model.scopes[scopename](...args));
+  }
+
+  toDebugString() {
+    const visitor = (query: NormalizedQuery): string => {
+      if ("_and" in query) {
+        return `(${query._and.map((sub) => visitor(sub)).join(" and ")})`;
+      }
+      if ("_or" in query) {
+        return `(${query._or.map((sub) => visitor(sub)).join(" or ")})`;
+      }
+      if ("_not" in query) {
+        return `not (${visitor(query._not)})`;
+      }
+      if ("value" in query) {
+        return `('${query.key}' ${query.comparator} [${query.value}])`;
+      }
+      return `!!UNKNOWN!!`;
+    };
+    return visitor(this.$query);
+  }
 }
 
-export type OpaqueQueryBuilder<Model extends OpaqueTable> = OpaqueQueryBuilderContract<Model>;
-export const OpaqueQueryBuilder = OpaqueQueryBuilderImplementation;
+export type QueryBuilder<Model extends OpaqueTable> = QueryBuilderContract<Model>;
+export const QueryBuilder: QueryBuilderStaticContract = QueryBuilderImplementation as any;
